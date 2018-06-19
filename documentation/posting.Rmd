@@ -1,0 +1,276 @@
+---
+title: "Is PUBG Mobile a Threat?"
+output: 
+  html_document: 
+    code_folding: hide 
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+c("tidyverse", "wrapr", "here", "lubridate", "ggsci", "patchwork") -> packages 
+lapply(packages, library, character.only = TRUE)
+
+dir0 <- function(file,base=NA) {
+  if (is.na(base)) {
+    here::here() %.>% str_glue("{.}/{file}")
+  } else {
+    here::here() %.>% str_glue("{.}/{base}/{file}")
+  }
+}
+
+dir0("appannie_reduced.rds", "rds") %>% readRDS() -> tbl0
+```
+
+# 요약 
+
+  * PUBGM의 출시는 다른 게임의 매출에 큰 타격을 주지 못했다.
+  
+# Motivation 
+
+"배틀그라운드 모바일"(이하 PUBGM)의 엄청난 다운로드 숫자를 보다가, 문득 궁금해졌다. 저 정도의 다운로드 숫자라면 분명 기존 모바일 게임 매출에 영향을 주지 않았을까? 일단 그림을 몇 개 그려보자. 
+
+## Data Desc. 
+
+활용한 데이터에 대한 간략한 정보은 다음과 같다. 
+
+  * 자료의 출처는 AppAnnie.com
+  * iOS와 AOS 통합 자료 
+  * PUBGM 출시일인 2018년 5월 16일을 전후로 4주씩 데이터 수집 
+
+해당 데이터는 github에 별도의 태클이 없는 한 공유해둘 예정이다. 원자료를 가공해 분석에 활용할 수준까지 가다듬은 자료를 면저 로딩하도록 하자. 아래 코드는 분석에 필요한 패키지 및 전처리가 완료된 rds 파일을 로드하는 코드다. 이 부분은 각자 알아서 수정해 활용하기 바란다. 
+
+```{r eval=FALSE, include=TRUE}
+c("tidyverse", "wrapr", "here", "lubridate", "ggsci", "patchwork") -> packages 
+lapply(packages, library, character.only = TRUE)
+
+dir0 <- function(file,base=NA) {
+  if (is.na(base)) {
+    here::here() %.>% str_glue("{.}/{file}")
+  } else {
+    here::here() %.>% str_glue("{.}/{base}/{file}")
+  }
+}
+
+dir0("appannie_reduced.rds", "rds") %>% readRDS() -> tbl0
+```
+
+## Data preparation 
+
+그림을 그리기 위해서 약간의 데이터를 준비해야 한다. 아래 코드를 참고하자. 
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+
+tbl0 %>% dplyr::filter(!is.na(rank)) -> tbl1 
+
+tbl1 %>% 
+  select(
+    -one_of("rank", "value", "unit")
+  ) %>% 
+  distinct( 
+    app_name, date, .keep_all=TRUE  
+  )-> common 
+
+tbl1 %>% 
+  select(one_of("rank", "value", "unit", "app_name", "date")
+  ) %>% 
+  dplyr::filter(unit == "Downloads") %>% 
+  rename(
+    download = value, 
+    rank_dl = rank
+  ) %>% 
+  select( 
+    -unit
+  ) -> download
+
+tbl1 %>% 
+  select(
+    one_of("rank", "value", "unit", "app_name", "date") 
+  ) %>% 
+  dplyr::filter(unit == "USD") %>% 
+  rename(
+    revenue = value, 
+    rank_rv = rank
+  ) %>% 
+  select(-unit) -> usd
+
+download %>% 
+  left_join(usd, by = c("app_name", "date")) %>% 
+  select(rank_dl, rank_rv, app_name, date, revenue, download) %>% 
+  left_join(common, by = c("app_name", "date")) -> tbl0 
+
+tbl0 %>% 
+  distinct(date) %>% 
+  mutate( 
+    year = year(date) 
+  ) %>% 
+  group_by(year) %>% 
+  mutate(
+   n_date = seq_len(n())
+  ) -> date
+
+tbl0 %>% 
+  mutate(
+    year = year(date)
+  ) %>% 
+  left_join(
+    date, by=c("date", "year")
+  ) -> tbl1 
+
+# break setting 
+c(0, 3, 25, 100, 1000) -> mybreaks 
+c("t3", "t25", "t100", "remain") -> mylabels
+
+my_cut <- function(vc, breaks0=mybreaks, labels0=mylabels){
+  cut(vc, breaks = breaks0, labels=mylabels) 
+}
+summarise_bg <- function(year0, df, do_daily=T){
+  df %>% 
+    dplyr::filter(year == year0, !is.na(revenue)) %>% 
+    group_by(date) %>% 
+    arrange(date, -revenue) %>%
+    mutate(
+      rank_rv2 = seq_len(n()), 
+      cat_rv = my_cut(rank_rv2)
+    ) %>% 
+    group_by(date, cat_rv) %>% 
+    summarise(
+      sum_rv = sum(revenue), 
+      fct_bg = if_else(first(n_date) <29, "BBG", "ABG"), 
+      n_date = first(n_date)
+    )
+}
+
+summarise_bg(2018, tbl1) %>% mutate(year = year(date)) -> tbl2 
+summarise_bg(2017, tbl1) %>% mutate(year = year(date)) -> tbl3
+bind_rows(tbl3, tbl2) %>% as_tibble(.) -> tbl4 
+
+ymd("2017-05-01", "2017-05-02", "2018-05-01", "2018-05-02",
+    "2017-06-01", "2017-06-02", "2018-06-01", "2018-06-02") -> dates_ex
+
+tbl4 %>% 
+  dplyr::filter(!date %in% dates_ex) %>%
+  group_by(n_date, cat_rv) %>% 
+  summarise(dff = sum_rv[2] - sum_rv[1]) -> tbl5 
+```
+
+# Downloads of PUBGM
+
+```{r}
+tbl0 %>%
+  mutate(
+    is_topdl = if_else(rank_dl==1, TRUE, FALSE)
+  ) %>% 
+  group_by(date, is_topdl) %>% 
+  summarise(
+    download = sum(download)
+  ) %>% 
+  group_by(date) %>% 
+  mutate(
+    download_top = download[is_topdl==T],
+    shr_top = download_top / sum(download)
+  ) -> topdl 
+
+topdl %>% 
+  dplyr::filter(date >= ymd("2018-01-01")) %>% 
+  ggplot() + 
+  aes(x=date, y=download_top) +
+  geom_col(alpha=0.5) + 
+  geom_vline(xintercept=ymd("2018-05-16"), col="black", size=1, alpha=0.5, linetype=1) +
+  ggtitle("#1 Downloaded Mobile App (2018)") + 
+  xlab("date") + 
+  ylab("number of downloads") -> p3
+
+topdl %>% 
+  dplyr::filter(date >= ymd("2018-01-01")) %>%
+  ggplot() + 
+  aes(x=date, y=shr_top) +
+  geom_col(alpha=0.5) +
+  geom_vline(xintercept=ymd("2018-05-16"), col="black", size=1, alpha=0.5, linetype=1) +
+  ggtitle("The Share of #1 Mobile App (2018)") + 
+  xlab("date") + 
+  ylab("share of #1 app")-> p4 
+
+topdl %>% 
+  dplyr::filter(date < ymd("2018-01-01")) %>% 
+  ggplot() + 
+  aes(x=date, y=download_top) +
+  geom_col(alpha=0.5) +
+  ggtitle("#1 Downloaded Mobile App (2017)") + 
+  xlab("date") + 
+  ylab("number of downloads") -> p5
+
+topdl %>% 
+  dplyr::filter(date < ymd("2018-01-01")) %>%
+  ggplot() + 
+  aes(x=date, y=shr_top) +
+  geom_col(alpha=0.5) +
+  ggtitle("The Share of #1 Mobile App (2017)") + 
+  xlab("date") + 
+  ylab("share of #1 app")-> p6
+
+{p3 + p4} / {p5 + p6}
+```
+
+위의 두 그림이 PUBGM 출시를 전후한 게임 1위 앱의 다운로드 숫자와 1위 앱의 비율을 각각 나타낸 것이다. 보는 것처럼 PUGBM 출시  이후 숫자 비중 모두 압도적인 숫자이며, 여전히 PUBGM은 다운로드 수에서는 1위를 기록하고 있다. PUBGM의 이런 기록이 이례적이라는 것은 아래 두 그림을 통해 확인할 수 있다. 작년 같은 기간 다운로드 숫자는 0이 대략 70만 건 이상 낮다. 
+
+# PUBGM vs Incumbents  
+
+여가는 결국 시간의 소비이고, 시간은 절대 제약에 속한다. 쉽게 생각해 많은 모바일 게이머들이 PUBGM를 하느라 다른 게임을 하지 않았다면, 이 게임의 점유율이 줄어들고 이에 따라서 매출도 줄어들게 될 것이다. 물론 이런 현상이 관찰되기 위해서는 몇가지 조건이 성립해야 한다. 
+
+  1. 기존 모바일 게임과 PUBMG 사이에 일정한 경합관계가 존재해야 한다. 
+  2. 1이 일정 수준 이상의 과금 이용자 사이에서 존재해야 한다.
+  3. PUBGM으로 이동한 과금이용자들이 기존 게임에서처럼 돈을 써줘야 한다. 
+
+일단 그림부터 살펴보자. 
+
+```{r}
+tbl2 %.>% 
+  ggplot(.) + 
+  aes(x=date, y=sum_rv, color=cat_rv) +
+  geom_point(alpha = 0.5) +
+  geom_line(alpha = 0.5) + 
+  stat_smooth(geom="line", alpha=0.6, size=2, span=0.5) + 
+  geom_vline(xintercept=ymd("2018-05-16"), col="black", size=1, alpha=0.5, linetype=1) +
+  ggtitle(str_glue("Before and After PUBG Mobile")) + 
+  xlab("date") + 
+  ylab("revenue(USD)") -> p1
+
+tbl5 %.>% 
+  ggplot(.) + 
+  aes(x=n_date, y=dff, color=cat_rv) +
+  geom_point(alpha = 0.5) +
+  geom_line(alpha = 0.5) + 
+  stat_smooth (geom="line", alpha=0.6, size=2, span=0.5) + 
+  geom_vline(xintercept = 29, size=1, alpha=0.5, col="black", linetype=1) +
+  ggtitle("DID of PUBG Mobile") + 
+  xlab("date count") + 
+  ylab("revenue difference(USD)") -> p2
+```
+
+```{r message=FALSE, warning=FALSE}
+# Y2018 trend of Before and After PUBG Mobile
+p1 + theme_minimal() + scale_color_simpsons()
+```
+
+게임 매출 순위에 따른 범주 구분은 다음과 같다. 
+
+  1. 1~3위 
+  2. 4위~25위 
+  3. 26위~100위 
+  4. 100위 이하 
+
+2018년 5월 16일에 출시된 PUBGM 전후로 다른 게임의 매출 변화를 살펴보았다. 일단 출시 이후 범주 1,2의 하락세는 관찰된다. 하지만 아직 결론을 내긴 이르다. 
+
+  1. 모바일 게임 매출에는 월별 주기가 존재한다. 월초를 정점으로 해서 말까지 떨어지는 추세가 일반적인데, PUBGM 춭시 이후 이러한 추세가 관찰된 것인지 PUBGM의 영향인지 구분하기 힘들다. 
+  
+# DID of PUBGM 
+
+이럴 때 활용할 수 있는 방법이 DID(difference in difference)다. 이는 같은 대상에 대해서 자연실험이 발생하기 전의 비교 가능한 시점을 정해 둘 간의 차이에 차이가 있는지를 살펴보는 것이다. 만일 자연실험이 효과가 있다면 DID에서 차이를 관찰할 수 있을 것이다. 
+
+2017년 같은 요일의 매출을 구해 2018년 매출과 차이를 구해 표시하면 PUBGM의 DID를 살펴볼 수 있다. 다만, 월초 높은 매출이 가져오는 효과를 배제하기 위해서 매년에서 1일과 2일은 비교에서 제외했다. 
+
+```{r message=FALSE, warning=FALSE}
+# Y2018 trend of Before and After PUBG Mobile
+p2 + theme_minimal() + scale_color_simpsons()
+```
+
+
+위 그림에서 보듯이 PUBGM 출시의 타게임에 대한 매출 타격은 출시 이후 초반 10일 정도까지만 존재한 것 같다. 타격의 낙폭은 1 범주(~3위)보다는 2 범주(~25위)에서 두드러졌다. PUBGM가 지닌 캐주얼함을 고려하면 수긍이 되는 부분이다. 하지만 이러한 PUBGM 효과는 10일 이후 다시 원래 수준으로 돌아오는 것으로 나타난다.  
