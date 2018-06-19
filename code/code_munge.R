@@ -15,8 +15,8 @@ dir0("appannie.rds", "rds") %.>% readRDS(.) -> tbl0
 
 # Use janitor 
 
-library(janitor)
-library(lubridate)
+install_load_package("janitor")
+install_load_package("lubridate")
 
 tbl0 %>%
   clean_names() %>%
@@ -28,7 +28,7 @@ tbl0 %.>%
   select(., -one_of(
     "category", "country", "app_id", "app_url", "publisher_id", "publisher_name", 
     "app_franchise_id", "company_id", "parent_company_id", 
-    "version", "value_type", "change_percent", "change_rank"
+    "version", "value_type", "change_percent", "change_rank", "change_value"
     )
   ) %.>% 
   mutate(., 
