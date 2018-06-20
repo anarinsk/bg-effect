@@ -40,19 +40,11 @@ lapply(packages, library, character.only = TRUE)
 
 해당 데이터는 [github repo](https://github.com/anarinsk/bg-effect)에 공유했다. 원자료를 가공해 분석에 활용할 수준으로 가다듬은 자료를 면저 로딩하도록 하자. 아래 코드는 분석에 필요한 패키지 및 전처리가 완료된 rds 파일을 로드하는 코드다. CP949로 인코딩된 csv 확장자 파일도 올려 두었다. 이 부분은 각자 알아서 수정해 활용하기 바란다. 
 
-```{r eval=FALSE, include=TRUE}
+```{}
 c("tidyverse", "wrapr", "here", "lubridate", "ggsci", "patchwork") -> packages 
 lapply(packages, library, character.only = TRUE)
 
-dir0 <- function(file,base=NA) {
-  if (is.na(base)) {
-    here::here() %.>% str_glue("{.}/{file}")
-  } else {
-    here::here() %.>% str_glue("{.}/{base}/{file}")
-  }
-}
-
-dir0("appannie_reduced.rds", "rds") %>% readRDS() -> tbl0
+"./data/appannie_reduced.rds" %>% readRDS() -> tbl0
 ```
 
 ## Data preparation 
@@ -209,7 +201,7 @@ topdl %>%
   xlab("date") + 
   ylab("share of #1 app")-> p_dl4
 
-{p_dl1 + p_dl2} / {p_dl3 + p_dl4}
+((p_dl1 | p_dl2) / (p_dl3 | p_dl4)) & scale_fill_simpsons() & theme_minimal()  
 ```
 
 상단의 그림 두 개가 PUBG-M 출시를 전후한 게임 1위 앱의 다운로드 숫자와 데이터에 기록된 해당일 다운로드 총 규모에서 1위 앱의 비율을 나타낸 것이다. 회색 선은  PUBG-M 출시일인 5월 16일을 의미한다. PUGBM 출시 이후 다운로드 숫자와 비중 모두 압도적이다. 이글을 작성하고 있는 2018년 6월 20일 기준으로 PUBG-M가 여전히 다운로드 1위이다. PUBG-M의 기록이 이례적이라는 사실을 독자는 아래 두 개의 그림으로 확인할 수 있다. 작년 같은 기간에 기록한 최고 다운로드 숫자는 대략 PUBG-M에 비해서 70만 건 이상 낮다. 
@@ -290,4 +282,28 @@ p_did + theme_minimal() + scale_color_simpsons()
 # What's Next? 
 
 지금까지 DID 추정의 가능성을 살피기 위해서 빨르게 그림 몇 개 그려보았다. PART 2에서는 회귀분석을 통해 DID 추정량을 살펴볼 예정이다. 언제 PART 2를 들고 올지는 나도 모른다! 
+
+# Bonus track 
+
+그래서 PUBG-M의 매출은? 700만에 육박하는 다운로드에 비해서는 처참한 수준이다. 현재 매출 1위인 "리니지M"과 비교하면 1%에서 3% 사이를 오락가락하고 있다... 
+
+
+```{r message=FALSE, warning=FALSE}
+tbl0 %>%
+  dplyr::filter(rank_rv==1|app_name=="PUBG Mobile", date >= ymd("2018-01-01")) %>%
+  group_by(date) %>% 
+  dplyr::filter(n() == 2) %>% 
+  group_by(date) %>% 
+  summarise(
+    rev = revenue[app_name=="PUBG Mobile"],
+    shr = rev / revenue[rank_rv==1]
+  ) %>% 
+  ggplot() + 
+  aes(x=date, y=rev) + 
+  geom_col(alpha=0.5) +
+  ggtitle("Revenue of PUBG-M") + 
+  xlab("date") + 
+  ylab("USD") + 
+  scale_fill_simpsons() + theme_minimal()  
+```
 

@@ -9,6 +9,8 @@ dir0 <- function(file,base=NA) {
   }
 }
 
+c("lubridate", "ggsci", "patchwork") %>% install_load_package()
+
 ### Load data. Manipulate tbls ----
 
 dir0("appannie_reduced.rds", "rds") %.>% readRDS(.) -> tbl0
@@ -199,9 +201,8 @@ topdl %>%
   xlab("date") + 
   ylab("number of downloads")-> p6
 
-install_load_package("patchwork")
 
-{p3 + p4} / {p5 + p6}
+((p3 | p4) / (p5 | p6)) & scale_fill_simpsons() & theme_minimal()  
 
 tbl0 %>%
   dplyr::filter(rank_rv==1|app_name=="PUBG Mobile", date >= ymd("2018-01-01")) %>%
@@ -212,6 +213,17 @@ tbl0 %>%
     rev = revenue[app_name=="PUBG Mobile"],
     shr = rev / revenue[rank_rv==1]
   ) -> rev_compare 
+
+rev_compare %>% 
+  ggplot() + 
+  aes(x=date, y=rev) + 
+  geom_col(alpha=0.5) +
+  ggtitle("Revenue of PUBG-M") + 
+  xlab("date") + 
+  ylab("USD")-> p6
+
+p6 + scale_fill_simpsons() + theme_minimal()  
+
 
 ### Post chores ----
 
