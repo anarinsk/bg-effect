@@ -212,3 +212,7 @@ tbl0 %>%
     rev = revenue[app_name=="PUBG Mobile"],
     shr = rev / revenue[rank_rv==1]
   ) -> rev_compare 
+
+### Post chores ----
+
+tbl0 %>% write.csv(., dir0("tbl0.csv", "documentation/data"), fileEncoding="CP949")
