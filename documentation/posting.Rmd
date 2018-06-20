@@ -3,6 +3,8 @@ title: "Is PUBG Mobile a Threat? PART I"
 output: 
   html_document: 
     code_folding: hide 
+    toc: true
+    toc_float: true
 ---
 
 ```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
@@ -287,5 +289,5 @@ p_did + theme_minimal() + scale_color_simpsons()
 
 # What's Next? 
 
-지금 그림은 DID 추정의 가능성을 살펴보기 위해서 빠르게 그려본 것이다.  PART 2에서는 회귀분석을 통해 DID 추정량을 살펴볼 예정이다. 언제 PART 2를 들고 올지는 나도 모른다! 
+지금까지 DID 추정의 가능성을 살피기 위해서 빨르게 그림 몇 개 그려보았다. PART 2에서는 회귀분석을 통해 DID 추정량을 살펴볼 예정이다. 언제 PART 2를 들고 올지는 나도 모른다! 
 
