@@ -25,6 +25,7 @@ lapply(packages, library, character.only = TRUE)
 ## Update history 
 
   * 20180620 최초 작성 
+  * 20180621 PUBG-M 매출 자료 추가 
   
 # Motivation 
 
