@@ -12,9 +12,17 @@ lapply(packages, library, character.only = TRUE)
 "./data/appannie_reduced.rds" %>% readRDS() -> tbl0
 ```
 
-# 요약 
+# tl;dr
 
-  * PUBG-M의 출시는 다른 게임의 매출에 지속적인 충격을 주지 못한 것으로 보인다. 
+  * PUBG-M의 출시는 다른 게임의 매출에 일시적인 타격은 주었으나, 지속적인 충격을 주지 못한 것으로 보인다. 
+
+# NOTICE 
+
+  * 문제가 생길 경우 글은 언제나 예고 없이 수정되거나 사라질 수 있습니다. 이 점 양해 바랍니다. 
+
+## Update history 
+
+  * 20180620 최초 작성 
   
 # Motivation 
 
