@@ -41,7 +41,7 @@ lapply(packages, library, character.only = TRUE)
 
 해당 데이터는 [github repo](https://github.com/anarinsk/bg-effect)에 공유했다. 원자료를 가공해 분석에 활용할 수준으로 가다듬은 자료를 면저 로딩하도록 하자. 아래 코드는 분석에 필요한 패키지 및 전처리가 완료된 rds 파일을 로드하는 코드다. CP949로 인코딩된 csv 확장자 파일도 올려 두었다. 이 부분은 각자 알아서 수정해 활용하기 바란다.[^1]
 
-[^1]: 만일 위의 깃헙레포를 포크 혹은 클론했다면, root의 `bg-effect.Rproj`을 RStudio에서 실행 한 후 아래의 코드를 그대로 실행하면 되곘다. 많은 R의 선지자가 강조하듯이 `setwd()`는 안 쓰는게 정신 건강에 좋다! 
+[^1]: 만일 위의 깃헙레포를 포크 혹은 클론했다면, root의 `bg-effect.Rproj`을 RStudio에서 실행 한 후 아래의 코드를 그대로 실행하라. 많은 R의 선지자가 강조하듯이 `setwd()`는 안 쓰는게 정신 건강에 좋아! 
 
 ```{}
 c("tidyverse", "wrapr", "here", "lubridate", "ggsci", "patchwork") -> packages 
