@@ -112,18 +112,34 @@ gen_df4did <- function(var, rank, d_range, df){
       fct_ttm = factor(ttm), 
       fct_franchise = if_else(is.na(app_franchise), FALSE, TRUE), 
       fct_domestic = if_else(hq_country == "South Korea", TRUE, FALSE), 
+      fct_iap = if_else(app_iap == "True", TRUE, FALSE),
       age = date - app_release_date
     )
 }
 
 ### Unit test 
-gen_df4did(rank_dl2, c(1,100), 7, tbl0) -> df_reg
 
 ### Regression Test ----
 
-gen_df4did(rank_rv2, c(1,30), 14, tbl0) %>% 
-  group_by(rank_rv2, fct_year, fct_ttm) %>% 
-  summarise(revenue = sum(revenue), download = sum(download)) %>% 
-  lm(revenue ~ download + age + star_rating +fct_domestic + fct_franchise + fct_year*fct_ttm, data =.) %>% 
-  summary()
 
+gen_df4did(rank_rv2, c(1,150), 7, tbl0) -> tbl1
+
+
+%>% 
+  group_by(app_name, fct_year, fct_ttm) %>%
+  mutate(
+    rev_mn = mean(revenue, na.rm = TRUE), 
+    rev_md = median(revenue, na.rm = TRUE),  
+    dl_mn = mean(download, na.rm = TRUE), 
+    dl_md = median(download, na.rm = TRUE), 
+    rank_sum = sum(rank_rv2)
+  ) %>% 
+  distinct(app_name fct_year, fct_ttm, .keep_all = TRUE) -> tbl2 
+
+lm(revenue ~  age + download + rank_rv2 + fct_domestic + fct_year*fct_ttm, data =tbl1) %>% summary(.)
+
+
+tbl2 %>% 
+  ungroup() %>% 
+  count(app_iap) %>% 
+  arrange(-n)
